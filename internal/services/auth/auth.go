@@ -92,7 +92,7 @@ func (auth *Auth) Login(ctx context.Context, email, password string, appId int) 
 
 	app, err := auth.appProvider.App(ctx, appId)
 	if err != nil {
-		if errors.Is(err, ErrInvalidAppId) {
+		if errors.Is(err, storage.ErrAppNotFound) {
 			auth.log.Warn("invalid app id", err)
 
 			return "", fmt.Errorf("%s : %w", op, ErrInvalidAppId)
