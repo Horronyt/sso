@@ -29,7 +29,7 @@ func New(storagePath string) (*Storage, error) {
 func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (int64, error) {
 	const op = "storage.sqlite.SaveUser"
 
-	stmt, err := s.db.Prepare("INSERT INTO users (email, password_hash) VALUES (?, ?)")
+	stmt, err := s.db.Prepare("INSERT INTO users (email, pass_hash) VALUES (?, ?)")
 	if err != nil {
 		return 0, fmt.Errorf("%s : %w", op, err)
 	}
@@ -97,4 +97,27 @@ func (s *Storage) IsAdmin(ctx context.Context, id int64) (bool, error) {
 	}
 
 	return isAdmin, nil
+}
+
+func (s *Storage) App(ctx context.Context, id int) (models.App, error) {
+	const op = "storage.sqlite.App"
+
+	stmt, err := s.db.Prepare("SELECT id, name, secret FROM apps WHERE id = ?")
+	if err != nil {
+		return models.App{}, fmt.Errorf("%s : %w", op, err)
+	}
+
+	row := stmt.QueryRowContext(ctx, id)
+
+	var app models.App
+	err = row.Scan(&app.ID, &app.Name, &app.Secret)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.App{}, storage.ErrUserNotFound
+		}
+
+		return models.App{}, fmt.Errorf("%s : %w", op, err)
+	}
+
+	return app, nil
 }

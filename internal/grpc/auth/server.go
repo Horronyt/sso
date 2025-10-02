@@ -2,9 +2,12 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"github.com/Horronyt/protos/gen/go/sso"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"sso/internal/services/auth"
+	"sso/internal/storage"
 )
 import "google.golang.org/grpc"
 
@@ -32,8 +35,11 @@ func (s *serverAPI) Login(ctx context.Context, in *ssov1.LoginRequest) (*ssov1.L
 	}
 
 	token, err := s.auth.Login(ctx, in.GetEmail(), in.GetPassword(), int(in.GetAppId()))
+
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, auth.ErrInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -49,7 +55,9 @@ func (s *serverAPI) Register(ctx context.Context, in *ssov1.RegisterRequest) (*s
 
 	userID, err := s.auth.RegisterNewUser(ctx, in.GetEmail(), in.GetPassword())
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, auth.ErrUserExists) {
+			return nil, status.Error(codes.AlreadyExists, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
@@ -65,7 +73,9 @@ func (s *serverAPI) IsAdmin(ctx context.Context, in *ssov1.IsAdminRequest) (*sso
 
 	isAdmin, err := s.auth.IsAdmin(ctx, in.GetUserId())
 	if err != nil {
-		// TODO: ...
+		if errors.Is(err, storage.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
